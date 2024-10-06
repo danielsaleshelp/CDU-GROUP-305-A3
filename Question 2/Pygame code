@@ -20,10 +20,10 @@ pygame.display.set_caption('Game')
 clock = pygame.time.Clock()
 FPS = 30
 
-# define game variables
+#define game variables
 GRAVITY = 0.75
 
-# define player action variables
+#define player action variables
 left = False
 right = False
 shoot = False
@@ -62,7 +62,7 @@ class Soldier(pygame.sprite.Sprite):
         self.action = 0
         self.update_time = pygame.time.get_ticks()
 
-        # load all images
+        #load all images
         animation_types = ['idle', 'run', 'jump', 'death']
         for animation in animation_types:
             temp_list = []
@@ -84,7 +84,7 @@ class Soldier(pygame.sprite.Sprite):
             self.shoot_cooldown -= 1
 
     def move(self, left, right):
-        # reset movement at the start of each frame (otherwise character would move constantly until the direction was changed)
+        #reset movement at the start of each frame (otherwise character would move constantly until the direction was changed)
         dx = 0
         dy = 0
 
@@ -97,20 +97,20 @@ class Soldier(pygame.sprite.Sprite):
             self.flip = False
             self.direction = 1
 
-        # jump
+        #jump
         if self.jump and not self.in_air:
             self.vel_y = -15
             self.jump = False
             self.in_air = True
 
-        # apply gravity
+        #apply gravity
         self.vel_y += GRAVITY
         if self.vel_y > 10:
             self.vel_y = 10
 
         dy += self.vel_y
 
-        # check collision with floor
+        #check collision with floor
         if self.rect.bottom + dy > 300:
             dy = 300 - self.rect.bottom
             self.in_air = False
@@ -119,18 +119,18 @@ class Soldier(pygame.sprite.Sprite):
         self.rect.y += dy
 
     def shoot(self):
-        if self.shoot_cooldown == 0 and self.ammo> 0:
-            self.shoot_cooldown = 6
+        if self.shoot_cooldown == 0 and self.ammo > 0:
+            self.shoot_cooldown = 8
             bullet = Bullet(self.rect.centerx + (0.6 * self.rect.size[0] * self.direction), self.rect.centery, self.direction)
             bullet_group.add(bullet)
             self.ammo -= 1
 
     def update_animation(self):
-        # update animation
+        #update animation
         ANIMATION_COOLDOWN = 100
-        # update image depending on current frame
+        #update image depending on current frame
         self.image = self.animation_list[self.action][self.frame_index]
-        # check if enough time has passed since last update
+        #check if enough time has passed since last update
         if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
@@ -141,10 +141,10 @@ class Soldier(pygame.sprite.Sprite):
                 self.frame_index = 0
 
     def update_action(self, new_action):
-        # check if new action is different to previous
+        #check if new action is different to previous
         if new_action != self.action:
             self.action = new_action
-            # update the animation settings
+            #update the animation settings
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
 
@@ -159,7 +159,7 @@ class Soldier(pygame.sprite.Sprite):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x ,y , direction):
+    def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
         self.speed = 10
         self.image = bullet_img
@@ -169,18 +169,24 @@ class Bullet(pygame.sprite.Sprite):
 
     def update(self):
         self.rect.x += (self.direction * self.speed)
+        
+        #check if bullet is out of bounds
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
 
-        if pygame.sprite.Spritecollide(player, bullet_group, False):
+        #check collision with player
+        if pygame.sprite.spritecollide(player, bullet_group, False):
             if player.alive:
-                player.health-= 10
+                player.health -= 10
                 self.kill()
-        if pygame.sprite.Spritecollide(enemy, bullet_group, False):
+
+        #check collision with enemy
+        if pygame.sprite.spritecollide(enemy, bullet_group, False):
             if enemy.alive:
-                player.health-= 25
-                
+                enemy.health -= 25
                 self.kill()
+
+
 
 #create sprite groups
 bullet_group = pygame.sprite.Group()
@@ -192,51 +198,52 @@ enemy = Soldier('enemy', 400, 200, 3, 5, 25)
 
 run = True
 while run:
-
     clock.tick(FPS)
-
     draw_bg()
 
-    player.update_animation()
+    player.update()
     player.draw()
-
-    enemy.update_animation()
+    
+    #update enemy before drawing
+    enemy.update()
     enemy.draw()
 
-    #update and draw groups
     bullet_group.update()
     bullet_group.draw(screen)
 
-    # update player actions
+    #update player actions
     if player.alive:
         if shoot:
             player.shoot()
         if player.in_air:
-            player.update_action(2)  # 2 = jump
+            player.update_action(2)  #2 = jump
         elif left or right:
-            player.update_action(1)  # 1 = run
+            player.update_action(1)  #1 = run
         else:
-            player.update_action(0)  # 0 = idle
+            player.update_action(0)  #0 = idle
         player.move(left, right)
 
+    if not enemy.alive:
+        enemy.kill()
+
     for event in pygame.event.get():
-        # quit game
+        #quit game
         if event.type == pygame.QUIT:
             run = False
-        # keyboard presses
+        #keyboard presses
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 left = True
             if event.key == pygame.K_d:
                 right = True
-            if event.key == pygame.K_SPACE:
-                shoot = True           
+            if event.key == pygame.K_SPACE and player.ammo > 0:
+                shoot = True
             if event.key == pygame.K_w and player.alive:
                 player.jump = True
             if event.key == pygame.K_ESCAPE:
                 run = False
 
-        # keyboard button release
+        #keyboard button release
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 left = False
@@ -246,5 +253,6 @@ while run:
                 shoot = False
 
     pygame.display.update()
+
 
 pygame.quit()
