@@ -2,7 +2,6 @@ import os
 import math
 import random
 import csv
-from tkinter.tix import ROW
 
 # try to open pygame
 try:
