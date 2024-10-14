@@ -1,6 +1,16 @@
 import tkinter as tk
 from tkinter import messagebox
-from googletrans import Translator
+
+#try to import google trans
+try:
+    from googletrans import Translator
+except ImportError:  # if googletrans is not installed, install it then open it
+    print('some modules not installed, installing them now...')
+          
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "googletrans"])
+    from googletrans import Translator
 
 # Base class for translation service
 class TranslatorService:
