@@ -3,6 +3,7 @@ import math
 import random
 import csv
 
+
 # try to open pygame
 try:
     import pygame
@@ -21,7 +22,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Game')
 
 clock = pygame.time.Clock()
-FPS = 60
+FPS = 30
 ROWS = 16
 COLS = 150
 TILE_TYPES = 21
@@ -73,7 +74,6 @@ def draw_text(text, font, text_col, x, y):
 
 def draw_bg():
     screen.fill(BG)
-    pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
 
 class Soldier(pygame.sprite.Sprite):
     def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
@@ -90,6 +90,7 @@ class Soldier(pygame.sprite.Sprite):
         self.direction = 1
         self.vel_y = 0
         self.jump = False
+        self.jump_cooldown = 0
         self.in_air = True
         self.flip = False
         self.animation_list = []
@@ -117,12 +118,16 @@ class Soldier(pygame.sprite.Sprite):
         self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
 
     def update(self):
         self.update_animation()
         self.check_alive()
         if self.shoot_cooldown > 0:
             self.shoot_cooldown -= 1
+        if self.jump_cooldown >0:
+            self.jump_cooldown -=1
 
     def move(self, left, right):
         #reset movement at the start of each frame (otherwise character would move constantly until the direction was changed)
@@ -139,23 +144,44 @@ class Soldier(pygame.sprite.Sprite):
             self.direction = 1
 
         #jump
-        if self.jump and not self.in_air:
+        if self.jump and not self.in_air and self.jump_cooldown == 0 and self.alive:
             self.vel_y = -15
             self.jump = False
             self.in_air = True
-
+            
+        #jump cooldown, needed to stop player from jumping before touching ground
+        if self.in_air:
+            self.jump_cooldown = 4
+            
         #apply gravity
         self.vel_y += GRAVITY
-        if self.vel_y > 10:
-            self.vel_y = 10
+        if self.vel_y > 15:
+            self.vel_y = 15
 
         dy += self.vel_y
 
-        #check collision with floor
-        if self.rect.bottom + dy > 300:
-            dy = 300 - self.rect.bottom
-            self.in_air = False
-
+        #check collision 
+        for tile in world.obstacle_list:
+            #collision in the x direction
+            if tile[1].colliderect(self.rect.x+dx, self.rect.y, self.width, self.height):
+                #check if moving left or right
+                if dx<0:  
+                    dx = tile[1].right - self.rect.left
+                elif dx > 0:
+                    dx = tile[1].left - self.rect.right
+                    if dy ==0:
+                        self.in_air = False
+            if tile[1].colliderect(self.rect.x, self.rect.y+dy+1, self.width, self.height):
+                #check if moving up or down
+                if self.vel_y<0:  
+                    self.vel_y = 0
+                    dy = tile[1].bottom - self.rect.top
+                elif self.vel_y >= 0:
+                    self.vel_y = 0
+                    dy = tile[1].top - self.rect.bottom
+                    self.in_air = False
+                    
+                         
         self.rect.x += dx
         self.rect.y += dy
 
@@ -354,8 +380,9 @@ class Bullet(pygame.sprite.Sprite): #sniper upgrade? different guns for each lev
         self.rect.x += (self.direction * self.speed)
         
         #check if bullet is out of bounds
-        if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
-            self.kill()
+        for tile in world.obstacle_list:
+            if tile[1].colliderect(self.rect):
+                self.kill()
 
         #check collision with player
         if pygame.sprite.spritecollide(player, bullet_group, False):
@@ -379,6 +406,8 @@ class Grenade(pygame.sprite.Sprite): #get the grenade throwing movement dependan
         self.image = grenade_img
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
         self.direction = direction
         
     def update(self):
@@ -386,18 +415,23 @@ class Grenade(pygame.sprite.Sprite): #get the grenade throwing movement dependan
         dx = self.direction * self.speed
         dy = self.vel_y
 
-         #check collision with floor
-        if self.rect.bottom + dy > 300:
-            dy = 300 - self.rect.bottom 
-            #grenade bounce
-            if self.speed>0:  
-                self.speed *= 0.65
-            self.vel_y *= -0.5
-            
-        #check if grenade is out of bounds
-        if self.rect.left+dx < 0 or self.rect.right +dx > SCREEN_WIDTH:
-            self.direction *=-1
-            dx = self.direction * self.speed
+        #check collision with floor
+        for tile in world.obstacle_list:
+            if tile[1].colliderect(self.rect.x+dx, self.rect.y, self.width, self.height):
+                self.direction *=-1
+                dx = self.direction * self.speed
+            if tile[1].colliderect(self.rect.x, self.rect.y+dy+1, self.width, self.height):
+                #check if moving up
+                if dy<0:
+                    dy = tile[1].bottom - self.rect.top
+                    self.vel_y *=-1
+                #check if moving down
+                elif dy >= 0:
+                    dy = tile[1].top - self.rect.bottom
+                    self.speed *= 0.75
+                    self.vel_y*=-0.5
+        
+        dx = self.direction * self.speed
 
         #change grenade location
         self.rect.x += dx
@@ -529,6 +563,11 @@ while run:
         else:
             player.update_action(0)  #0 = idle
         player.move(left, right)
+        
+    #to stop player floating if they die in the air
+    if not player.alive:
+        player.move(False, False)
+
 
     for event in pygame.event.get():
         #quit game
@@ -544,7 +583,7 @@ while run:
                 grenade = True
             if event.key == pygame.K_SPACE and player.ammo > 0:
                 shoot = True
-            if event.key == pygame.K_w and player.alive:
+            if event.key == pygame.K_w:
                 player.jump = True
             if event.key == pygame.K_ESCAPE:
                 run = False
