@@ -9,6 +9,17 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import PhotoImage
+import subprocess
+
+#check which version of googletrans is installed
+check = str(subprocess.run(['pip', 'show', 'googletrans'], capture_output=True))
+
+V4 = 'Version: 4.0.0rc1'
+#if it is not version 4.0.0-rc1 or googletrans is not installed, install it
+if V4 not in check:
+    print('installing correct version of googletrans')
+    subprocess.run(['pip', 'install', 'googletrans==4.0.0-rc1'])
+
 from googletrans import Translator
 
 # Base class for translation service
