@@ -43,17 +43,17 @@ grenade_thrown = False
 #tiles
 img_list = []
 for x in range(TILE_TYPES):
-    img = pygame.image.load(f'img/Tile/{x}.png')
+    img = pygame.image.load(f'Question 2/img/Tile/{x}.png')
     img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     img_list.append(img)
 #bullet
-bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
+bullet_img = pygame.image.load('Question 2/img/icons/bullet.png').convert_alpha()
 #grenade
-grenade_img = pygame.image.load('img/icons/grenade.png').convert_alpha()
+grenade_img = pygame.image.load('Question 2/img/icons/grenade.png').convert_alpha()
 #pick up boxes
-health_box_image = pygame.image.load('img/icons/health_box.png').convert_alpha()
-ammo_box_image = pygame.image.load('img/icons/ammo_box.png').convert_alpha()
-grenade_box_image = pygame.image.load('img/icons/grenade_box.png').convert_alpha()
+health_box_image = pygame.image.load('Question 2/img/icons/health_box.png').convert_alpha()
+ammo_box_image = pygame.image.load('Question 2/img/icons/ammo_box.png').convert_alpha()
+grenade_box_image = pygame.image.load('Question 2/img/icons/grenade_box.png').convert_alpha()
 item_boxes = {
     'Health' : health_box_image,
     'Ammo' : ammo_box_image,
@@ -108,9 +108,9 @@ class Soldier(pygame.sprite.Sprite):
         animation_types = ['idle', 'run', 'jump', 'death']
         for animation in animation_types:
             temp_list = []
-            num_of_frames = len(os.listdir(f'img/{self.char_type}/{animation}'))
+            num_of_frames = len(os.listdir(f'Question 2/img/{self.char_type}/{animation}'))
             for i in range(num_of_frames):
-                img = pygame.image.load(f'img/{self.char_type}/{animation}/{i}.png').convert_alpha()
+                img = pygame.image.load(f'Question 2/img/{self.char_type}/{animation}/{i}.png').convert_alpha()
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                 temp_list.append(img)
             self.animation_list.append(temp_list)
