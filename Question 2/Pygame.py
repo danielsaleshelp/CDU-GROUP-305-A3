@@ -26,10 +26,13 @@ FPS = 30
 ROWS = 16
 COLS = 150
 TILE_TYPES = 21
+
 level = 1
 
 #define game variables
 GRAVITY = 0.75
+SCROLL_THRESH = 250
+bg_scroll = 0
 TILE_SIZE = SCREEN_HEIGHT //ROWS
 
 #define player action variables
@@ -40,20 +43,24 @@ grenade = False
 grenade_thrown = False
 
 #load images
+pine1_img = pygame.image.load('img/background/pine1.png').convert_alpha()
+pine2_img = pygame.image.load('img/background/pine2.png').convert_alpha()
+mountain_img = pygame.image.load('img/background/mountain.png').convert_alpha()
+sky_cloud_img = pygame.image.load('img/background/sky_cloud.png').convert_alpha()
 #tiles
 img_list = []
 for x in range(TILE_TYPES):
-    img = pygame.image.load(f'Question 2/img/Tile/{x}.png')
+    img = pygame.image.load(f'img/Tile/{x}.png')
     img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     img_list.append(img)
 #bullet
-bullet_img = pygame.image.load('Question 2/img/icons/bullet.png').convert_alpha()
+bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
 #grenade
-grenade_img = pygame.image.load('Question 2/img/icons/grenade.png').convert_alpha()
+grenade_img = pygame.image.load('img/icons/grenade.png').convert_alpha()
 #pick up boxes
-health_box_image = pygame.image.load('Question 2/img/icons/health_box.png').convert_alpha()
-ammo_box_image = pygame.image.load('Question 2/img/icons/ammo_box.png').convert_alpha()
-grenade_box_image = pygame.image.load('Question 2/img/icons/grenade_box.png').convert_alpha()
+health_box_image = pygame.image.load('img/icons/health_box.png').convert_alpha()
+ammo_box_image = pygame.image.load('img/icons/ammo_box.png').convert_alpha()
+grenade_box_image = pygame.image.load('img/icons/grenade_box.png').convert_alpha()
 item_boxes = {
     'Health' : health_box_image,
     'Ammo' : ammo_box_image,
@@ -74,7 +81,12 @@ def draw_text(text, font, text_col, x, y):
 
 def draw_bg():
     screen.fill(BG)
-
+    width = sky_img.get_width()
+    for x in range (5):
+        screen.blit(sky_img ((x * width) - bg_scroll * 0.5, 0))
+        screen.blit(mountain_img((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - mountain_img.ger_height() - 300))
+        screen.blit(pine1_img((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.ger_height() - 150))
+        screen.blit(pine2_img((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.ger_height()))
 class Soldier(pygame.sprite.Sprite):
     def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
         pygame.sprite.Sprite.__init__(self)
@@ -108,9 +120,9 @@ class Soldier(pygame.sprite.Sprite):
         animation_types = ['idle', 'run', 'jump', 'death']
         for animation in animation_types:
             temp_list = []
-            num_of_frames = len(os.listdir(f'Question 2/img/{self.char_type}/{animation}'))
+            num_of_frames = len(os.listdir(f'img/{self.char_type}/{animation}'))
             for i in range(num_of_frames):
-                img = pygame.image.load(f'Question 2/img/{self.char_type}/{animation}/{i}.png').convert_alpha()
+                img = pygame.image.load(f'img/{self.char_type}/{animation}/{i}.png').convert_alpha()
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                 temp_list.append(img)
             self.animation_list.append(temp_list)
@@ -131,6 +143,7 @@ class Soldier(pygame.sprite.Sprite):
 
     def move(self, left, right):
         #reset movement at the start of each frame (otherwise character would move constantly until the direction was changed)
+        screen_scroll = 0
         dx = 0
         dy = 0
 
@@ -180,10 +193,22 @@ class Soldier(pygame.sprite.Sprite):
                     self.vel_y = 0
                     dy = tile[1].top - self.rect.bottom
                     self.in_air = False
-                    
+
+        if self.char_type == 'player':
+            if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
+                dx =  0
                          
         self.rect.x += dx
         self.rect.y += dy
+
+        #update scroll
+        if self.char_type == 'player'
+            if (self.rect.right > SCREEN_WIDTH - SCREEN_THRESH and bg_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH)\
+                or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
+                self.rect.x -= dx
+                screen_scroll = -dx
+
+        return screen_scroll
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
@@ -222,9 +247,8 @@ class Soldier(pygame.sprite.Sprite):
                     if self.move_counter > TILE_SIZE:
                         self.direction *=-1
                         self.move_counter *=-1
-                    
 
-
+        self.rect.x += screen_scroll
         
     def update_animation(self):
         #update animation
@@ -268,7 +292,8 @@ class World():
     def __init__(self):
         self.obstacle_list = []
         
-    def process_data(self, data):    
+    def process_data(self, data):  
+        self.level_length = len(data[0])
         for y, row in enumerate(data):
             for x, tile in enumerate(row):
                 if tile >=0:
@@ -307,6 +332,7 @@ class World():
 
     def draw(self):
         for tile in self.obstacle_list:
+            tile[1][0] += screen_scroll
             screen.blit(tile[0], tile[1])
        
 #Different classes for decoration, water, and exit because how the player interacts with them is different. 
@@ -316,6 +342,9 @@ class Decoration(pygame.sprite.Sprite):
         self.image = img
         self.rect = self.image.get_rect()
         self.rect.midtop = (x+TILE_SIZE //2, y+(TILE_SIZE - self.image.get_height()))
+
+    def update(self):
+        self.rect.x += screen_scroll
         
 class Water(pygame.sprite.Sprite): 
     def __init__(self, img, x, y):
@@ -324,12 +353,18 @@ class Water(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.midtop = (x+TILE_SIZE //2, y+(TILE_TYPES - self.image.get_height()))
 
+    def update(self):
+        self.rect.x += screen_scroll
+
 class Exit(pygame.sprite.Sprite): 
     def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
         self.image = img
         self.rect = self.image.get_rect()
         self.rect.midtop = (x+TILE_SIZE //2, y+(TILE_TYPES - self.image.get_height()))
+
+    def update(self):
+        self.rect.x += screen_scroll
 
 class ItemBox(pygame.sprite.Sprite): 
     def __init__(self, item_type, x, y):
@@ -340,6 +375,7 @@ class ItemBox(pygame.sprite.Sprite):
         self.rect.midtop = (x+TILE_SIZE //2, y+(TILE_SIZE - self.image.get_height()))
         
     def update(self):
+        self.rect.x += screen_scroll
         #collision with player
         if pygame.sprite.collide_rect(self, player):
             #check which box
@@ -377,7 +413,7 @@ class Bullet(pygame.sprite.Sprite): #sniper upgrade? different guns for each lev
         self.direction = direction
 
     def update(self):
-        self.rect.x += (self.direction * self.speed)
+        self.rect.x += (self.direction * self.speed) + screen_scroll
         
         #check if bullet is out of bounds
         for tile in world.obstacle_list:
@@ -434,7 +470,7 @@ class Grenade(pygame.sprite.Sprite): #get the grenade throwing movement dependan
         dx = self.direction * self.speed
 
         #change grenade location
-        self.rect.x += dx
+        self.rect.x += dx + screen_scroll
         self.rect.y += dy
         
         #count down timer
@@ -468,6 +504,7 @@ class Explosion(pygame.sprite.Sprite):
         self.counter = 0
         
     def update(self):
+        self.rect.x += screen_scroll
         EXPLOSION_SPEED = 4 # how quickly it will animate
         self.counter += 1
         if self.counter >= EXPLOSION_SPEED:
@@ -562,8 +599,8 @@ while run:
             player.update_action(1)  #1 = run
         else:
             player.update_action(0)  #0 = idle
-        player.move(left, right)
-        
+        screen_scroll = player.move(left, right)
+        bg_scroll -= screen_scroll
     #to stop player floating if they die in the air
     if not player.alive:
         player.move(False, False)
