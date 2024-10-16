@@ -2,6 +2,7 @@ import os
 import math
 import random
 import csv
+import Button
 
 
 # try to open pygame
@@ -27,13 +28,15 @@ ROWS = 16
 COLS = 150
 TILE_TYPES = 21
 
-level = 1
-
 #define game variables
 GRAVITY = 0.75
-SCROLL_THRESH = 250
+MAX_LEVELS = 2
+SCROLL_THRESH = 150
+screen_scroll = 0
 bg_scroll = 0
 TILE_SIZE = SCREEN_HEIGHT //ROWS
+level = 1
+start_game = False
 
 #define player action variables
 left = False
@@ -43,6 +46,10 @@ grenade = False
 grenade_thrown = False
 
 #load images
+start_img = pygame.image.load('img/start_btn.png').convert_alpha()
+exit_img = pygame.image.load('img/exit_btn.png').convert_alpha()
+restart_img = pygame.image.load('img/restart_btn.png').convert_alpha()
+#background
 pine1_img = pygame.image.load('img/background/pine1.png').convert_alpha()
 pine2_img = pygame.image.load('img/background/pine2.png').convert_alpha()
 mountain_img = pygame.image.load('img/background/mountain.png').convert_alpha()
@@ -81,12 +88,31 @@ def draw_text(text, font, text_col, x, y):
 
 def draw_bg():
     screen.fill(BG)
-    width = sky_img.get_width()
+    width = sky_cloud_img.get_width()
     for x in range (5):
-        screen.blit(sky_cloud_img ((x * width) - bg_scroll * 0.5, 0))
-        screen.blit(mountain_img((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
-        screen.blit(pine1_img((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
-        screen.blit(pine2_img((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+        screen.blit(sky_cloud_img, ((x * width) - bg_scroll * 0.5, 0))
+        screen.blit(mountain_img, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
+        screen.blit(pine1_img, ((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
+        screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+
+def reset_level():
+    enemy_group.empty()
+    bullet_group.empty()
+    grenade_group.empty()
+    explosion_group.empty()
+    item_box_group.empty()
+    decoration_group.empty()
+    water_group.empty()
+    exit_group.empty()
+
+    #create empty tile list
+    data = []
+    for row in range(ROWS):
+        r = [-1] * COLS
+        data.append(r)
+
+    return data
+
 class Soldier(pygame.sprite.Sprite):
     def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
         pygame.sprite.Sprite.__init__(self)
@@ -176,10 +202,13 @@ class Soldier(pygame.sprite.Sprite):
         #check collision 
         for tile in world.obstacle_list:
             #collision in the x direction
-            if tile[1].colliderect(self.rect.x+dx, self.rect.y, self.width, self.height):
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                 #check if moving left or right
                 if dx<0:  
                     dx = tile[1].right - self.rect.left
+                    if self.char_type =='enemy':
+                        self.direction *= -1
+                        self.move_counter = 0
                 elif dx > 0:
                     dx = tile[1].left - self.rect.right
                     if dy ==0:
@@ -194,6 +223,19 @@ class Soldier(pygame.sprite.Sprite):
                     dy = tile[1].top - self.rect.bottom
                     self.in_air = False
 
+       #check for collision with water 
+        if pygame.sprite.spritecollide(self, water_group, False):
+            self.health = 0
+
+        #check for collision with exit
+        level_complete = False
+        if pygame.sprite.spritecollide(self, exit_group, False):
+            level_complete = True
+
+        #check if fallen off map
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.health = 0
+
         if self.char_type == 'player':
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
                 dx =  0
@@ -202,13 +244,13 @@ class Soldier(pygame.sprite.Sprite):
         self.rect.y += dy
 
         #update scroll
-        if self.char_type == 'player'
-            if (self.rect.right > SCREEN_WIDTH - SCREEN_THRESH and bg_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH)\
+        if self.char_type == 'player':
+            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and bg_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH)\
                 or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
                 self.rect.x -= dx
                 screen_scroll = -dx
 
-        return screen_scroll
+        return screen_scroll, level_complete
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
@@ -450,7 +492,7 @@ class Grenade(pygame.sprite.Sprite): #get the grenade throwing movement dependan
         self.vel_y += GRAVITY
         dx = self.direction * self.speed
         dy = self.vel_y
-
+        
         #check collision with floor
         for tile in world.obstacle_list:
             if tile[1].colliderect(self.rect.x+dx, self.rect.y, self.width, self.height):
@@ -516,6 +558,11 @@ class Explosion(pygame.sprite.Sprite):
             else:
                 self.image = self.images[self.frame_index]
 
+#create buttons
+start_button = Button.Button(SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 150, start_img, 1)
+exit_button = Button.Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 40, exit_img, 1)
+restart_button = Button.Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50, restart_img, 2)
+
 #create sprite groups
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
@@ -543,89 +590,122 @@ player, health_bar = world.process_data(world_data)
 
 run = True
 while run:
+    
     clock.tick(FPS)
-    draw_bg()
     
-    #draw world map
-    world.draw()
+    if start_game == False:
+        screen.fill(BG)
+        if start_button.draw(screen):
+            print("Start button clicked!")
+            start_game = True
+        if exit_button.draw(screen):
+            print("Exit button clicked!")
+            run = False
+    else:
+            
+        draw_bg()
+        #draw world map
+        world.draw()
+        
+        health_bar.draw(player.health)
     
-    health_bar.draw(player.health)
-
-    #tut part 7 if we want to display ammo and grenades with images instead of numbers
-    #ammo
-    draw_text(f'AMMO: {player.ammo}', font, WHITE, 10, 35)
-    #grenades
-    draw_text(f'GRENDADES: {player.grenades}', font, WHITE, 10, 60)
-
-
-    player.update()
-    player.draw()
+        #tut part 7 if we want to display ammo and grenades with images instead of numbers
+        #ammo
+        draw_text(f'AMMO: {player.ammo}', font, WHITE, 10, 35)
+        #grenades
+        draw_text(f'GRENDADES: {player.grenades}', font, WHITE, 10, 60)
     
-    #update enemy before drawing
-    for enemy in enemy_group:
-        enemy.ai()
-        enemy.update()
-        enemy.draw()
-
-    bullet_group.update()
-    grenade_group.update()
-    explosion_group.update()
-    item_box_group.update()
-    decoration_group.update()
-    water_group.update()
-    exit_group.update()
-    bullet_group.draw(screen)
-    grenade_group.draw(screen)
-    explosion_group.draw(screen)
-    item_box_group.draw(screen)
-    decoration_group.draw(screen)
-    water_group.draw(screen)
-    exit_group.draw(screen)
     
+        player.update()
+        player.draw()
+        
+        #update enemy before drawing
+        for enemy in enemy_group:
+            enemy.ai()
+            enemy.update()
+            enemy.draw()
+    
+        bullet_group.update()
+        grenade_group.update()
+        explosion_group.update()
+        item_box_group.update()
+        decoration_group.update()
+        water_group.update()
+        exit_group.update()
+        bullet_group.draw(screen)
+        grenade_group.draw(screen)
+        explosion_group.draw(screen)
+        item_box_group.draw(screen)
+        decoration_group.draw(screen)
+        water_group.draw(screen)
+        exit_group.draw(screen)
+        
+    
+        #update player actions
+        if player.alive:
+            if shoot:
+                player.shoot()
+            elif grenade and grenade_thrown== False and player.grenades >0:
+                grenade = Grenade(player.rect.centerx + (0.5*player.rect.size[0]*player.direction), player.rect.top, player.direction)
+                grenade_group.add(grenade)
+                grenade_thrown = True
+                player.grenades -= 1
+            if player.in_air:
+                player.update_action(2)  #2 = jump
+            elif left or right:
+                player.update_action(1)  #1 = run
+            else:
+                player.update_action(0)  #0 = idle
+            screen_scroll, level_complete = player.move(left, right)
+            bg_scroll -= screen_scroll
+            if level_complete:
+                level += 1
+                bg_scroll = 0
+                world_data = reset_level()
+                if level <= MAX_LEVELS:
+                    with open(f'level{level}_data.csv', newline='') as csvfile:
+                        reader = csv.reader(csvfile, delimiter= ',')
+                        for x,row in enumerate(reader):
+                            for y,tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+                    world = World()
+                    player, health_bar = world.process_data(world_data)   
+            #to stop player floating if they die in the air
 
-    #update player actions
-    if player.alive:
-        if shoot:
-            player.shoot()
-        elif grenade and grenade_thrown== False and player.grenades >0:
-            grenade = Grenade(player.rect.centerx + (0.5*player.rect.size[0]*player.direction),\
-                              player.rect.top, player.direction)
-            grenade_group.add(grenade)
-            grenade_thrown = True
-            player.grenades -= 1
-        if player.in_air:
-            player.update_action(2)  #2 = jump
-        elif left or right:
-            player.update_action(1)  #1 = run
         else:
-            player.update_action(0)  #0 = idle
-        screen_scroll = player.move(left, right)
-        bg_scroll -= screen_scroll
-    #to stop player floating if they die in the air
-    if not player.alive:
-        player.move(False, False)
-
-
+                screen_scroll = 0
+                if restart_button.draw(screen):
+                    bg_scroll = 0
+                    world_data = reset_level()
+                    with open(f'level{level}_data.csv', newline='') as csvfile:
+                        reader = csv.reader(csvfile, delimiter= ',')
+                        for x,row in enumerate(reader):
+                            for y,tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+                    
+                    world = World()
+                    player, health_bar = world.process_data(world_data)
+        
     for event in pygame.event.get():
         #quit game
         if event.type == pygame.QUIT:
             run = False
         #keyboard presses
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                left = True
-            if event.key == pygame.K_d:
-                right = True
-            if event.key == pygame.K_q:
-                grenade = True
-            if event.key == pygame.K_SPACE and player.ammo > 0:
-                shoot = True
-            if event.key == pygame.K_w:
-                player.jump = True
-            if event.key == pygame.K_ESCAPE:
-                run = False
+                if event.key == pygame.K_a:
+                    left = True
+                if event.key == pygame.K_d:
+                    right = True
+                if event.key == pygame.K_q:
+                    grenade = True
+                if event.key == pygame.K_SPACE and player.ammo > 0:
+                    shoot = True
+                if event.key == pygame.K_w:
+                    player.jump = True
+                if event.key == pygame.K_ESCAPE:
+                    run = False
 
-        #keyboard button release
+                #keyboard button release
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 left = False
