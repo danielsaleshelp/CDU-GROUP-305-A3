@@ -32,7 +32,7 @@ COLS = 150
 TILE_TYPES = 21
 
 #define game variables
-GRAVITY = 0.75
+GRAVITY = 0.65
 MAX_LEVELS = 3
 SCROLL_THRESH = 150
 screen_scroll = 0
