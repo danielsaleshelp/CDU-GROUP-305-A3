@@ -25,6 +25,6 @@ class Button():
             self.clicked = False
 
 		#draw button
-        screen.blit(self.image, (self.rect.x, self.rect.y))
+        surface.blit(self.image, (self.rect.x, self.rect.y))
 
         return action   
