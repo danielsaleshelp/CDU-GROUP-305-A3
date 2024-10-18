@@ -1,3 +1,9 @@
+#we used the tutorial by Coding with Russ (https://www.youtube.com/playlist?list=PLjcN1EyupaQm20hlUE11y9y8EY2aXLpnv) 
+#and modified the code where necessary to make this game
+#if you look at the history of the game on github you can see that we have been working
+#on this bit by bit for the last few weeks few weeks
+
+
 import os
 import math
 import random
@@ -33,7 +39,7 @@ TILE_TYPES = 21
 
 #define game variables
 GRAVITY = 0.65
-MAX_LEVELS = 4
+MAX_LEVELS = 3
 SCROLL_THRESH = 300
 screen_scroll = 0
 bg_scroll = 0
@@ -42,7 +48,7 @@ level = 1
 start_game = False
 boss_counter = 0
 points = 0
-lives = 2
+lives = 3
 
 #define player action variables
 left = False
@@ -94,6 +100,7 @@ BG = (144, 201, 120)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255 )
 BLACK = (0, 0, 0)
+GOLD = (255, 185, 15)
 
 font = pygame.font.SysFont('Futura', 30)
 big_font = pygame.font.SysFont('Futura', 60)
@@ -293,8 +300,6 @@ class Soldier(pygame.sprite.Sprite):
 
     def ai(self):
         if self.alive:
-            pygame.draw.rect(screen, BLACK, self.vision)
-
             if self.vision.colliderect(player.rect):
                 self.update_action(0)
                 if level ==3 and self.shoot_cooldown == 0: 
@@ -352,12 +357,15 @@ class Soldier(pygame.sprite.Sprite):
             self.update_time = pygame.time.get_ticks()
 
     def check_alive(self):
+        global lives
+        global points
         if self.health <=0:
             if self.alive ==True and self.char_type == 'enemy':
-                global points
                 points+=5
+                if level == 3:
+                    points += 45
+                    points += 50 * lives
             if self.alive ==True and self.char_type == 'player':
-                global lives
                 lives-=1
             self.health = 0 
             self.speed = 0
@@ -625,7 +633,8 @@ class ScreenFade():
         return fade_complete
 
 #screen fades
-death_fade = ScreenFade(2, BLACK, 4)        
+death_fade = ScreenFade(2, BLACK, 4) 
+win_fade = ScreenFade(2, GOLD, 4)
 
 #create buttons
 start_button = button.Button(SCREEN_WIDTH // 2 - 130, int(SCREEN_HEIGHT*(3/8)), start_img, 1)
@@ -772,6 +781,15 @@ while run:
                     
                             world = World()
                             player, player_health_bar, enemy_health_bar = world.process_data(world_data)
+    
+    for enemy in enemy_group:
+        if level ==3 and enemy.alive == False:
+            if win_fade.fade():
+                draw_text(f'You won with {lives} lives remaing!', big_font, WHITE, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
+                draw_text(f'+{lives*50}!', big_font, WHITE, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+30)
+                draw_text(f'You scored {points} points!', big_font, WHITE, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+70)
+                if exit_button.draw(screen):
+                            run = False
         
     for event in pygame.event.get():
         #quit game
