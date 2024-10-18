@@ -682,7 +682,7 @@ while run:
     if start_game == False:
         screen.fill(BG)
         draw_text(f'Welcome to our game!', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)-80)
-        draw_text(f'use WASD to move, spacebar to', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)-40)
+        draw_text(f'Use WASD to move, spacebar to', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)-40)
         draw_text(f'shoot and Q to throw grenades', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)+0)
         draw_text(f'Collect points and finish all 3 levels', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)+40)
         if start_button.draw(screen):
@@ -705,7 +705,7 @@ while run:
         #grenades
         draw_text(f'GRENADES: {player.grenades}', font, WHITE, 10, 60)
         #lives
-        draw_text(f'Lives: {lives}', font, WHITE, 10, 85)
+        draw_text(f'LIVES: {lives}', font, WHITE, 10, 85)
         #points 
         draw_text(f'{points}', big_font, WHITE, SCREEN_WIDTH-75, 10)
     
@@ -798,9 +798,9 @@ while run:
         if level ==3 and enemy.alive == False:
             if win_fade.fade():
                 if lives > 1:
-                    draw_text(f'You won with {lives} lives remaing', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
+                    draw_text(f'You won with {lives} lives remaining', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
                 elif lives == 1:
-                    draw_text(f'You won with {lives} life remaing', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
+                    draw_text(f'You won with {lives} life remaining', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
                 draw_text(f'+{lives*50}!', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+30)
                 draw_text(f'You scored {points} points!', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+70)
                 if exit_button.draw(screen):
