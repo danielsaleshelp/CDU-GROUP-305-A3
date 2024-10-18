@@ -38,11 +38,11 @@ SCROLL_THRESH = 300
 screen_scroll = 0
 bg_scroll = 0
 TILE_SIZE = SCREEN_HEIGHT //ROWS
-level = 4
+level = 1
 start_game = False
 boss_counter = 0
 points = 0
-lives = 1
+lives = 2
 
 #define player action variables
 left = False
