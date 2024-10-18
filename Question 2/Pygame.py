@@ -1,3 +1,11 @@
+#Group name:[Cas group 305]
+#Group Members:
+#[Reece Colgan] - S377586
+#[Hayden Powell] - S376682
+#[Daniel Sales] - S322244
+#[Luke Few] - S348831
+# Group 305 - Side Scrolling Pygame
+
 #we used the tutorial by Coding with Russ (https://www.youtube.com/playlist?list=PLjcN1EyupaQm20hlUE11y9y8EY2aXLpnv) 
 #and modified the code where necessary to make this game
 #if you look at the history of the game on github you can see that we have been working
