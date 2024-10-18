@@ -52,11 +52,11 @@ SCROLL_THRESH = 300
 screen_scroll = 0
 bg_scroll = 0
 TILE_SIZE = SCREEN_HEIGHT //ROWS
-level = 1
+level = 3
 start_game = False
 boss_counter = 0
 points = 0
-lives = 3
+lives = 1
 
 #define player action variables
 left = False
@@ -645,8 +645,8 @@ death_fade = ScreenFade(2, BLACK, 4)
 win_fade = ScreenFade(2, GOLD, 4)
 
 #create buttons
-start_button = button.Button(SCREEN_WIDTH // 2 - 130, int(SCREEN_HEIGHT*(3/8)), start_img, 1)
-exit_button = button.Button(SCREEN_WIDTH // 2 - 110, int(SCREEN_HEIGHT*(5/8)), exit_img, 1)
+start_button = button.Button(SCREEN_WIDTH // 2 - 130, int(SCREEN_HEIGHT*(4/8)), start_img, 1)
+exit_button = button.Button(SCREEN_WIDTH // 2 - 110, int(SCREEN_HEIGHT*(6/8)), exit_img, 1)
 restart_button = button.Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50, restart_img, 2)
 
 #create sprite groups
@@ -681,6 +681,10 @@ while run:
     
     if start_game == False:
         screen.fill(BG)
+        draw_text(f'Welcome to our game!', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)-80)
+        draw_text(f'use WASD to move, spacebar to', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)-40)
+        draw_text(f'shoot and Q to throw grenades', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)+0)
+        draw_text(f'Collect points and finish all 3 levels', big_font, WHITE, SCREEN_WIDTH//12, int(SCREEN_HEIGHT*0.25)+40)
         if start_button.draw(screen):
             start_game = True
         if exit_button.draw(screen):
@@ -793,9 +797,12 @@ while run:
     for enemy in enemy_group:
         if level ==3 and enemy.alive == False:
             if win_fade.fade():
-                draw_text(f'You won with {lives} lives remaing!', big_font, WHITE, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
-                draw_text(f'+{lives*50}!', big_font, WHITE, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+30)
-                draw_text(f'You scored {points} points!', big_font, WHITE, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+70)
+                if lives > 1:
+                    draw_text(f'You won with {lives} lives remaing', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
+                elif lives == 1:
+                    draw_text(f'You won with {lives} life remaing', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)-10)
+                draw_text(f'+{lives*50}!', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+30)
+                draw_text(f'You scored {points} points!', big_font, BLACK, SCREEN_WIDTH//7, int(SCREEN_HEIGHT*0.25)+70)
                 if exit_button.draw(screen):
                             run = False
         
